@@ -1,18 +1,15 @@
-# TryOn Mannequin
+# TryOn 3D Photo Avatar
 
-A stylized 3D mannequin (Godot 4.5) with body-shape sliders. Load a bra or panty photo and the
-app removes the plain background and wraps the garment around the mannequin.
+Godot 4.5+ project.
 
-## Get the APK
-GitHub builds it automatically on every push to `main`.
+## Changes
+- Replaced the primitive procedural mannequin with a transparent, full-body image-based avatar in the 3D scene.
+- The avatar rotates, zooms and scales with the 3D figure.
+- Kept bra/panty image loading, background removal, garment size and position controls, auto-turn and front view.
+- Avatar artwork: `assets/avatar_3d.png`.
 
-1. Open the **Releases** page of this repo and open the release called **Latest APK**.
-2. Download `tryon.apk` on your phone.
-3. Open it and allow "Install unknown apps" for your browser when Android asks.
+## Limitation
+This is a front-facing image-based 3D display, not a fully rigged 3D human mesh. It does not have independently modelled side/back anatomy or cloth simulation. Bust/waist/hips controls adjust garment fit, not the image's anatomy.
 
-You can also run the build by hand: **Actions > Build Android APK > Run workflow**.
-
-## Tips for cloth photos
-- Use product photos on a plain, evenly lit background.
-- A white garment on a white background will lose parts. Lower the "Background removal strength" slider or use a darker background.
-- Gaps between straps stay filled, because the cutout starts from the photo edges.
+## Run
+Open `project.godot` in Godot 4.5 or newer and run the project.

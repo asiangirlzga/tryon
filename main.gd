@@ -15,27 +15,12 @@ const PRESETS := {
 const SLOTS := ["bra", "panty"]
 const MAX_SIDE := 400
 
-var skins := {
-	"Light": Color("e8c9b0"),
-	"Warm": Color("d9a982"),
-	"Tan": Color("b9845c"),
-	"Deep": Color("7a4e35"),
-	"Mannequin": Color("d8d2cc"),
-}
+const AVATAR_TEXTURE_PATH := "res://assets/avatar_3d.png"
 
 # scene parts
 var figure: Node3D
 var cam: Camera3D
-var body_mat: StandardMaterial3D
-var bust_l: MeshInstance3D
-var bust_r: MeshInstance3D
-var waist_n: MeshInstance3D
-var hips_n: MeshInstance3D
-var thigh_l: Node3D
-var thigh_r: Node3D
-var arm_l: Node3D
-var arm_r: Node3D
-var head_n: Node3D
+var avatar_sprite: MeshInstance3D
 
 # shape state
 var height_k := 1.0
@@ -129,91 +114,31 @@ func limb(pivot: Node3D, r: float, h: float, m: Material) -> void:
 
 
 func build_mannequin() -> void:
+	# Transparent image-based avatar displayed on a 3D quad.
 	figure = Node3D.new()
 	add_child(figure)
-	body_mat = mat(skins["Light"], 0.65)
-	var hair_mat := mat(Color("241915"), 0.5)
-	var dark := mat(Color("15110f"), 0.4)
-	var lip := mat(Color("a8525a"), 0.5)
-
-	# torso (smooth, featureless, like a dress form)
-	ell(figure, Vector3(0.16, 0.14, 0.10), Vector3(0, 1.32, 0), body_mat)
-	ell(figure, Vector3(0.20, 0.05, 0.07), Vector3(0, 1.43, 0), body_mat)
-	waist_n = ell(figure, Vector3(0.125, 0.12, 0.085), Vector3(0, 1.12, 0), body_mat)
-	hips_n = ell(figure, Vector3(0.17, 0.12, 0.115), Vector3(0, 0.95, 0), body_mat)
-	bust_l = ell(figure, Vector3(0.065, 0.065, 0.055), Vector3(0.07, 1.31, 0.085), body_mat)
-	bust_r = ell(figure, Vector3(0.065, 0.065, 0.055), Vector3(-0.07, 1.31, 0.085), body_mat)
-
-	# neck
-	var neck := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.04
-	cm.bottom_radius = 0.045
-	cm.height = 0.12
-	neck.mesh = cm
-	neck.material_override = body_mat
-	neck.position = Vector3(0, 1.5, 0)
-	figure.add_child(neck)
-
-	# head with a simple stylized face
-	head_n = Node3D.new()
-	head_n.position = Vector3(0, 1.64, 0)
-	figure.add_child(head_n)
-	ell(head_n, Vector3(0.095, 0.115, 0.10), Vector3.ZERO, body_mat)
-	ell(head_n, Vector3(0.103, 0.12, 0.108), Vector3(0, 0.017, -0.02), hair_mat)
-	ell(head_n, Vector3(0.05, 0.05, 0.05), Vector3(0, 0.09, -0.09), hair_mat)
-	for s in [-1.0, 1.0]:
-		ell(head_n, Vector3(0.012, 0.012, 0.012), Vector3(0.035 * s, 0.015, 0.092), dark)
-		ell(head_n, Vector3(0.03, 0.005, 0.006), Vector3(0.037 * s, 0.042, 0.09), dark)
-	ell(head_n, Vector3(0.012, 0.014, 0.012), Vector3(0, -0.012, 0.1), body_mat)
-	ell(head_n, Vector3(0.022, 0.006, 0.006), Vector3(0, -0.048, 0.094), lip)
-
-	# arms
-	for s in [-1.0, 1.0]:
-		var arm := Node3D.new()
-		arm.position = Vector3(0.205 * s, 1.42, 0)
-		figure.add_child(arm)
-		limb(arm, 0.042, 0.32, body_mat)
-		var fore := Node3D.new()
-		fore.position = Vector3(0, -0.30, 0)
-		arm.add_child(fore)
-		limb(fore, 0.034, 0.28, body_mat)
-		ell(fore, Vector3(0.03, 0.045, 0.02), Vector3(0, -0.3, 0), body_mat)
-		if s > 0.0:
-			arm_l = arm
-		else:
-			arm_r = arm
-
-	# legs
-	for s in [-1.0, 1.0]:
-		var th := Node3D.new()
-		th.position = Vector3(0.085 * s, 0.9, 0)
-		figure.add_child(th)
-		limb(th, 0.075, 0.52, body_mat)
-		var sh := Node3D.new()
-		sh.position = Vector3(0, -0.46, 0)
-		th.add_child(sh)
-		limb(sh, 0.052, 0.46, body_mat)
-		ell(sh, Vector3(0.05, 0.03, 0.1), Vector3(0, -0.43, 0.04), body_mat)
-		if s > 0.0:
-			thigh_l = th
-		else:
-			thigh_r = th
+	avatar_sprite = MeshInstance3D.new()
+	var avatar_quad := QuadMesh.new()
+	avatar_quad.size = Vector2(0.92, 1.62)
+	avatar_sprite.mesh = avatar_quad
+	var avatar_texture := load(AVATAR_TEXTURE_PATH) as Texture2D
+	var avatar_material := StandardMaterial3D.new()
+	avatar_material.albedo_texture = avatar_texture
+	avatar_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	avatar_material.alpha_scissor_threshold = 0.05
+	avatar_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	avatar_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	avatar_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	avatar_sprite.material_override = avatar_material
+	avatar_sprite.position = Vector3(0, 0.88, 0)
+	figure.add_child(avatar_sprite)
 
 
 func apply_shape() -> void:
+	# Height scales the complete image-based avatar. Fit controls resize garments.
 	figure.scale = Vector3.ONE * height_k
-	bust_l.scale = Vector3(0.065, 0.065, 0.055) * bust_k
-	bust_r.scale = bust_l.scale
-	var bx := 0.07 + 0.012 * (bust_k - 1.0)
-	bust_l.position = Vector3(bx, 1.31, 0.085)
-	bust_r.position = Vector3(-bx, 1.31, 0.085)
-	waist_n.scale = Vector3(0.125 * waist_k, 0.12, 0.085 * lerpf(1.0, waist_k, 0.8))
-	hips_n.scale = Vector3(0.17 * hips_k, 0.12, 0.115 * lerpf(1.0, hips_k, 0.6))
-	thigh_l.position.x = 0.085 * hips_k
-	thigh_r.position.x = -0.085 * hips_k
-	for s in SLOTS:
-		update_garment(s)
+	for slot in SLOTS:
+		update_garment(slot)
 
 
 # ---------------------------------------------------------------- garments
@@ -532,19 +457,15 @@ func build_ui() -> void:
 	presets.item_selected.connect(_on_preset)
 	box.add_child(presets)
 
-	var l2 := Label.new()
-	l2.text = "Skin tone"
-	box.add_child(l2)
-	var skin_opt := OptionButton.new()
-	for k in skins:
-		skin_opt.add_item(k)
-	skin_opt.item_selected.connect(_on_skin)
-	box.add_child(skin_opt)
+	var avatar_info := Label.new()
+	avatar_info.text = "3D photo avatar (reference-based)"
+	avatar_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(avatar_info)
 
 	sl_height = add_slider(box, "Height", 0.85, 1.15, 1.0, _set_height)
-	sl_bust = add_slider(box, "Bust", 0.7, 1.4, 1.0, _set_bust)
-	sl_waist = add_slider(box, "Waist", 0.7, 1.5, 1.0, _set_waist)
-	sl_hips = add_slider(box, "Hips", 0.7, 1.5, 1.0, _set_hips)
+	sl_bust = add_slider(box, "Bust / bra fit", 0.7, 1.4, 1.0, _set_bust)
+	sl_waist = add_slider(box, "Waist fit", 0.7, 1.5, 1.0, _set_waist)
+	sl_hips = add_slider(box, "Hips / panty fit", 0.7, 1.5, 1.0, _set_hips)
 
 	var b_bra := Button.new()
 	b_bra.text = "Load bra photo"
@@ -606,10 +527,6 @@ func _on_preset(idx: int) -> void:
 	sl_bust.value = v[1]
 	sl_waist.value = v[2]
 	sl_hips.value = v[3]
-
-
-func _on_skin(idx: int) -> void:
-	body_mat.albedo_color = skins.values()[idx]
 
 
 func _set_height(v: float) -> void:
@@ -677,11 +594,6 @@ func _process(delta: float) -> void:
 	t += delta
 	if auto_turn:
 		figure.rotation.y += delta * 0.6
-	var sway := sin(t * 1.3) * 0.03
-	arm_l.rotation.z = 0.12 + sway
-	arm_r.rotation.z = -0.12 - sway
-	head_n.rotation.z = sin(t * 0.8) * 0.04
-	head_n.rotation.y = sin(t * 0.5) * 0.12
 
 
 func _unhandled_input(ev: InputEvent) -> void:
