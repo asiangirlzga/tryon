@@ -1,0 +1,73 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up export templates, Android SDK paths and debug keystore
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates ~/.config/godot build
+          if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" ]; then
+            echo "templates already in place"
+          else
+            mv /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/ || true
+          fi
+          ls ~/.local/share/godot/export_templates/ || true
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android \
+            -keystore /root/debug.keystore -storepass android \
+            -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          SDK="${ANDROID_HOME:-/usr/lib/android-sdk}"
+          JDK="$(dirname "$(dirname "$(readlink -f "$(which javac)")")")"
+          echo "SDK=$SDK JDK=$JDK"
+          ls "$SDK" || true
+          cat > ~/.config/godot/editor_settings-4.5.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$SDK"
+          export/android/java_sdk_path = "$JDK"
+          export/android/debug_keystore = "/root/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          export/android/force_system_user = false
+          export/android/shutdown_adb_on_exit = true
+          EOF
+          sed -i 's/^          //' ~/.config/godot/editor_settings-4.5.tres
+          cat ~/.config/godot/editor_settings-4.5.tres
+
+      - name: Check scripts for errors
+        run: |
+          godot --headless --path . --import || true
+          godot --headless --path . --check-only --script res://main.gd
+
+      - name: Export debug APK
+        run: |
+          godot --headless --path . --export-debug "Android" build/tryon.apk
+          ls -la build
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tryon-apk
+          path: build/tryon.apk
+
+      - name: Publish APK as a GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest APK
+          body: Debug APK built from the latest commit. Download tryon.apk on your phone and install it.
+          files: build/tryon.apk
+          make_latest: true
