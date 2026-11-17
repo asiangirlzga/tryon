@@ -61,7 +61,8 @@ jobs:
 
       - name: Export debug APK
         run: |
-          godot --headless --path . --export-debug "Android" build/tryon.apk
+          godot --headless --path . --import || true
+          godot --headless --verbose --path . --export-debug "Android" build/tryon.apk
           ls -la build
 
       - name: Upload APK as workflow artifact
